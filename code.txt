@@ -1,0 +1,218 @@
+code
+
+app.py
+
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import re
+import nltk
+from nltk.chat.util import Chat, reflections
+import requests
+
+nltk.download('punkt')
+
+app = Flask(__name__)
+CORS(app)
+
+# Chatbot responses
+pairs = [
+    ["hi|hello", ["Hello! How can I help you with cybersecurity?"]],
+    [r"what is phishing\??", ["Phishing is a fraudulent attempt to get sensitive information."]],
+    [r"what is hacking\??",["Hacking is gaining unauthorized access to systems or data."]],
+    [r"how to create a strong password\??", ["Use a mix of uppercase, lowercase, numbers, and special characters. Avoid using personal information."]],
+    [r"what is two factor authentication\??", ["Two-factor authentication (2FA) adds an extra layer of security by requiring a second form of verification."]],
+    [r"what is malware\??", ["Malware is malicious software designed to harm, exploit, or otherwise compromise a computer or network."]],
+    [r"what is ransomware\??", ["Ransomware is a type of malware that encrypts files and demands payment for the decryption key."]],
+    [r"how to identify a phishing email\??", ["Look for generic greetings, grammar mistakes, and suspicious links. Always verify the sender."]],
+    [r"what is a firewall\??", ["A firewall is a network security system that monitors and controls incoming and outgoing traffic."]],
+    [r"what is antivirus software\??", ["Antivirus software is designed to detect, prevent, and remove malware."]],
+    [r"what is social engineering\??", ["Social engineering is the use of deception to manipulate individuals into divulging confidential information."]],
+    [r"how to browse safely\??", ["Use secure connections (HTTPS), avoid suspicious sites, and keep your browser updated."]],
+    [r"what is https\??", ["HTTPS is a secure version of HTTP that uses encryption to protect data in transit."]],
+    [r"what is a vpn\??", ["A VPN (Virtual Private Network) encrypts your internet connection and hides your IP address."]],
+    [r"what is spear phishing\??", ["Spear phishing is a targeted phishing attack aimed at a specific individual or organization."]],
+    [r"what is keylogging\??", ["Keylogging is a method of capturing and recording keystrokes to steal sensitive information."]],
+    [r"what is identity theft\??", ["Identity theft involves stealing personal information to impersonate someone else."]],
+    [r"what is data breach\??", ["A data breach is an incident where confidential data is accessed without authorization."]],
+    [r"what is brute force attack\??", ["A brute force attack is a method of guessing passwords by trying all possible combinations."]],
+    [r"what is zero day exploit\??", ["A zero-day exploit targets a software vulnerability unknown to the developer."]],
+    [r"how to avoid malware\??", ["Keep your software updated, avoid clicking unknown links, and use antivirus protection."]],
+    [r"how to secure mobile devices\??", ["Use screen locks, keep OS updated, and install apps only from trusted sources."]],
+    [r"what is spyware\??", ["Spyware is software that secretly gathers information about a person or organization."]],
+    [r"what is adware\??", ["Adware automatically delivers ads and may track your online behavior."]],
+    [r"what is trojan horse\??", ["A Trojan horse is a type of malware disguised as legitimate software."]],
+    [r"what is worm in cyber security\??", ["A worm is malware that spreads itself to other computers without user intervention."]],
+    [r"what is botnet\??", ["A botnet is a network of infected computers controlled remotely by a hacker."]],
+    [r"how to recognize secure websites\??", ["Secure websites use HTTPS and show a padlock symbol in the browser address bar."]],
+    [r"how to protect from identity theft\??", ["Use strong, unique passwords, monitor your accounts, and avoid oversharing online."]],
+    [r"what is cyberbullying\??", ["Cyberbullying is bullying that takes place over digital devices like phones or computers."]],
+    [r"what is encryption\??", ["Encryption is the process of converting data into code to prevent unauthorized access."]],
+    [r"what is decryption\??", ["Decryption is the process of converting encrypted data back into readable form."]],
+    [r"what is digital footprint\??", ["Your digital footprint is the trail of data you leave behind online."]],
+    [r"how to reduce digital footprint\??", ["Limit personal info shared online, use privacy settings, and delete old accounts."]],
+    [r"how to report cybercrime\??", ["Report to local cybercrime authorities or platforms like CERT or Cyber Crime Cell."]],
+    [r"what is cyber hygiene\??", ["Cyber hygiene refers to practices and steps users take to maintain system health and improve online security."]],
+    [r"what is session hijacking\??", ["Session hijacking is an attack where a hacker takes over a valid session between a user and a server."]],
+    [r"how to protect against session hijacking\??", ["Use HTTPS, log out after sessions, and avoid public Wi-Fi for sensitive tasks."]],
+    [r"what is password manager\??", ["A password manager stores and manages your passwords in an encrypted database."]],
+    [r"what is dns spoofing\??", ["DNS spoofing is a cyberattack that redirects a website's traffic to a malicious site."]],
+    [r"what is man in the middle attack\??", ["A man-in-the-middle attack occurs when an attacker secretly relays and possibly alters the communication."]],
+    [r"what is two step verification\??", ["Two-step verification requires two forms of identification before granting access."]],
+    [r"how to recognize fake apps\??", ["Check developer info, reviews, permissions requested, and download only from official stores."]],
+    ["bye", ["Goodbye! Stay safe online."]]
+]
+
+
+chatbot = Chat(pairs, reflections)
+
+# Chatbot API
+@app.route("/chatbot", methods=["POST"])
+def chatbot_response():
+    user_input = request.json.get("message")
+    response = chatbot.respond(user_input)
+    return jsonify({"response": response or "I'm not sure, but I can help with cybersecurity tips!"})
+
+# Safe and Unsafe Links
+safe_links = [
+    "https://google.com", "https://microsoft.com", "https://github.com", "https://openai.com",
+    "https://apple.com", "https://amazon.com", "https://facebook.com", "https://twitter.com",
+    "https://linkedin.com", "https://youtube.com", "https://wikipedia.org", "https://stackoverflow.com",
+    "https://mozilla.org", "https://reddit.com", "https://cloudflare.com", "https://digitalocean.com",
+    "https://dropbox.com", "https://zoom.us", "https://adobe.com", "https://spotify.com",
+    "https://netflix.com", "https://salesforce.com", "https://slack.com", "https://trello.com",
+    "https://asana.com", "https://bitbucket.org", "https://intel.com", "https://nvidia.com",
+    "https://uber.com", "https://airbnb.com", "https://yahoo.com", "https://bbc.com", "https://cnn.com",
+    "https://nytimes.com", "https://forbes.com", "https://weather.com", "https://nationalgeographic.com",
+    "https://who.int", "https://nasa.gov", "https://whitehouse.gov"
+]
+
+unsafe_links = [
+    "http://secure-login-google.com", "http://paypal-verify.com", "http://free-prizes-now.net",
+    "http://login-microsoft-support.org", "http://claim-your-giftcard.xyz", "http://amazon-safeaccount-check.com",
+    "http://netflix-verification-login.ru", "http://update-appleid.com", "http://bankofamerica-security-check.com",
+    "http://dropbox-authentication.org", "http://get-rich-fast.biz", "http://you-won-money.today",
+    "http://secure-login-facebook-support.com", "http://malicious-link.net", "http://bit.ly/fakeupdate",
+    "http://verify-now-account.com", "http://security-update-required.org", "http://official-prizeclaim.com",
+    "http://free-giftcard-download.com", "http://get-access-now.ru", "http://vpn-alert-warning.net",
+    "http://urgent-account-freeze.com", "http://yourbank-login-confirm.net", "http://sign-in-paypal-support.com",
+    "http://claim-btc-earnings.today", "http://microsoft-support-helpdesk.com", "http://apple-icloud-login.info",
+    "http://tiktok-free-followers.xyz", "http://instagram-giveaway.live", "http://fakewindowsupdate.com",
+    "http://secure-form-update.info", "http://123-free-money.biz", "http://phish-alert.now",
+    "http://data-recovery-required.xyz", "http://browser-security-patch.ru", "http://malware-virus-warning.com",
+    "http://click-now-to-win.net", "http://reset-your-password-alert.org", "http://hacked-website-login.com",
+    "http://anonymous-access-now.info"
+]
+
+# Phishing Link Detector
+@app.route("/phishing", methods=["POST"])
+def phishing_detector():
+    url = request.json.get("url", "").strip().lower()
+
+    if url in safe_links:
+        return jsonify({"message": "✅ This link is safe."})
+    elif url in unsafe_links:
+        return jsonify({"message": "⚠️ Warning! This link looks suspicious."})
+    else:
+        return jsonify({"message": "❓ Unknown link. Be cautious!"})
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+index.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cybersecurity Awareness Bot</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Smart Cybersecurity Awareness Bot</h2>
+        <div id="chat-box"></div>
+        <input type="text" id="user-input" placeholder="Type a message...">
+        <button onclick="sendMessage()">Send</button>
+
+        <h3>Phishing Link Detector</h3>
+        <input type="text" id="url-input" placeholder="Enter a URL">
+        <button onclick="checkPhishing()">Check</button>
+        <p id="phishing-result"></p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+styles.css
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    text-align: center;
+    padding: 20px;
+}
+
+.container {
+    background: white;
+    padding: 20px;
+    max-width: 400px;
+    margin: auto;
+    box-shadow: 0px 0px 10px gray;
+}
+
+button {
+    background: #007bff;
+    color: white;
+    padding: 10px;
+    border: none;
+    cursor: pointer;
+}
+
+input {
+    padding: 10px;
+    width: 80%;
+    margin: 5px;
+}
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+script.js
+
+function sendMessage() {
+    let userInput = document.getElementById("user-input").value;
+    
+    fetch('http://127.0.0.1:5000/chatbot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userInput })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById("chat-box").innerHTML += "<p>User: " + userInput + "</p>";
+        document.getElementById("chat-box").innerHTML += "<p>Bot: " + data.response + "</p>";
+    })
+    .catch(error => console.error("Error:", error));
+}
+
+function checkPhishing() {
+    let urlInput = document.getElementById("url-input").value;
+
+    fetch('http://127.0.0.1:5000/phishing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlInput })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById("phishing-result").innerText = data.message;
+    })
+    .catch(error => console.error("Error:", error));
+}
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
